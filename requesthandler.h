@@ -8,8 +8,10 @@
  */
 void getAllPeople(crow::response& response);
 void getSinglePerson(crow::response& response, const std::string& uuid);
+
 void getAllEvents(crow::response& response);
 void getSingleEvent(crow::response& response, const std::string& uuid);
+
 void getAllRequests(crow::response& response);
 void getSingleRequest(crow::response& response, const std::string& uuid);
 

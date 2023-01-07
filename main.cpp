@@ -1,32 +1,25 @@
 #include <mysql/jdbc.h>
 #include <crow.h>
 #include "requesthandler.h"
+#include "config.h"
 
 /* TODO list:
- * Fix cmake to support building on multiple platforms
  * Improve documentation
- * Make sure the GET functions are protected from sql injection
  * Write unit tests
  * Test the POST functions
- * Create some sort of config to save server parameters
  * Add more error checking, especially:
- *      - around the config file
  *      - around the EmptyEncodings.dat file
  *      - input from POST commands
  *      - all database operations
  */
 
 void runServer();
+Config config;
 
 int main() {
     std::cout << "REST API for roster management software" << std::endl << "Created by Sandbox and the Student Government Association operations team" << std::endl;
-    if (!database.createDatabaseConnection()) {
-        std::cout << "The database connection could not be created! Please check the database credentials and the "
-                  << "network connection and run the program again" << std::endl;
-        return -1;
-    } else {
-        std::cout << "The database connection has been opened successfully." << std::endl;
-    }
+    setup();
+    std::cout << "The configuration was loaded successfully and the database connection was opened!" << std::endl;
 
     runServer();  // Run forever – the program will exit gracefully on SIGINT signal
     std::cout << "Web server closed successfully. Have a good day!";
@@ -34,9 +27,10 @@ int main() {
 }
 
 void runServer() {
+    // Create the app
     crow::SimpleApp app;
-    // TODO port and bind address should be set
-    app.port(81);
+    app.port(config.port);
+    app.bindaddr(config.bindAddr);
 
     // Register the routes
     CROW_ROUTE(app, "/persons").methods(crow::HTTPMethod::GET)(getAllPeople);

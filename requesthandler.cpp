@@ -36,17 +36,26 @@ void getAllPeople(crow::response& response) {
 void getSinglePerson(crow::response& response, const std::string& uuid) {
     tryToSendJson([&uuid](crow::json::wvalue& resultsJson) {
         // Gets the results from the database
-        std::string command = "SELECT first_name, last_name, email, " \
-        "active_member, voting_rights, receive_not_present_email, include_in_quorum, sign_in_blocked FROM Member " \
-        "WHERE uuid = '" + uuid + "';";
-        sql::ResultSet *infoResult = database.statement->executeQuery(command);
-        sql::ResultSet *groupResults = database.statement->executeQuery("SELECT * FROM MemberGroup WHERE person_id = '"
-                                                                        + uuid + "';");
-        sql::ResultSet *attendanceResults = database.statement->executeQuery("SELECT event_id, " \
-        "attendance_status FROM AttendanceRecord WHERE person_id = '" + uuid + "';");
+        sql::PreparedStatement* getInfoStatement = database.connection->prepareStatement(
+                "SELECT first_name, last_name, email, active_member, voting_rights, receive_not_present_email, " \
+                "include_in_quorum, sign_in_blocked FROM Member WHERE uuid = ?;");
+        getInfoStatement->setString(1, uuid);
+        sql::ResultSet *infoResult = getInfoStatement->executeQuery();
+        delete getInfoStatement;
+
+        sql::PreparedStatement* getGroupsStatement = database.connection->prepareStatement(
+                "SELECT * FROM MemberGroup WHERE person_id = ?;");
+        getGroupsStatement->setString(1, uuid);
+        sql::ResultSet *groupResults = getGroupsStatement->executeQuery();
+        delete getGroupsStatement;
+
+        sql::PreparedStatement* getAttendanceStatement = database.connection->prepareStatement(
+                "SELECT event_id, attendance_status FROM AttendanceRecord WHERE person_id = ?;");
+        getAttendanceStatement->setString(1, uuid);
+        sql::ResultSet *attendanceResults = getAttendanceStatement->executeQuery();
+        delete getAttendanceStatement;
 
         infoResult->next();
-
         createPersonJson(infoResult, resultsJson, uuid);
         delete infoResult;
 
@@ -59,6 +68,7 @@ void getSinglePerson(crow::response& response, const std::string& uuid) {
             resultsJson[uuid]["attendance_record"][attendanceResults->getString(1)] = \
             attendanceResults->getString(2);
         }
+        delete attendanceResults;
     }, response);
 }
 
@@ -98,14 +108,19 @@ void getAllEvents(crow::response& response){
 void getSingleEvent(crow::response& response, const std::string& uuid) {
     tryToSendJson([&uuid](crow::json::wvalue& resultsJson) {
         // Gets the results from the database
-        sql::ResultSet *eventResults = database.statement->executeQuery("SELECT event_name, start_time, end_time, "
-                                                                        "sign_in_closed FROM Event WHERE uuid = '"
-                                                                        + uuid + "';");
-        sql::ResultSet *groupResults = database.statement->executeQuery("SELECT membership_group FROM " \
-        "GroupExpectedAtEvent WHERE event_id = '" + uuid + "';");
+        sql::PreparedStatement* getEventStatement = database.connection->prepareStatement(
+                "SELECT event_name, start_time, end_time, sign_in_closed FROM Event WHERE uuid = ?;");
+        getEventStatement->setString(1, uuid);
+        sql::ResultSet *eventResults = getEventStatement->executeQuery();
+        delete getEventStatement;
+
+        sql::PreparedStatement* getGroupStatement = database.connection->prepareStatement(
+                "SELECT membership_group FROM GroupExpectedAtEvent WHERE event_id = ?;");
+        getGroupStatement->setString(1, uuid);
+        sql::ResultSet* groupResults = getGroupStatement->executeQuery();
+        delete getGroupStatement;
 
         eventResults->next();
-
         createEventJson(eventResults, resultsJson, uuid);
         delete eventResults;
 
@@ -115,8 +130,6 @@ void getSingleEvent(crow::response& response, const std::string& uuid) {
             groupList.push_back(groupResults->getString(1));
         }
         delete groupResults;
-
-        resultsJson[uuid]["groups"] = groupList;
     }, response);
 }
 
@@ -146,12 +159,14 @@ void getAllRequests(crow::response& response) {
 void getSingleRequest(crow::response& response, const std::string& uuid) {
     tryToSendJson([&uuid](crow::json::wvalue& resultsJson) {
         // Gets the results from the database
-        sql::ResultSet *result = database.statement->executeQuery("SELECT name, time_submitted, date_of_change, " \
-        "type, change_status, reason, time_arriving, time_leaving FROM AttendanceChangeRequest WHERE uuid = '" \
-        + uuid + "';");
+        sql::PreparedStatement *requestStatement = database.connection->prepareStatement(
+                "SELECT name, time_submitted, date_of_change, type, change_status, reason, time_arriving, " \
+                "time_leaving FROM AttendanceChangeRequest WHERE uuid = ?;");
+        requestStatement->setString(1, uuid);
+        sql::ResultSet* result = requestStatement->executeQuery();
+        delete requestStatement;
 
         result->next();
-
         createRequestJson(result, resultsJson, uuid);
         delete result;
     }, response);

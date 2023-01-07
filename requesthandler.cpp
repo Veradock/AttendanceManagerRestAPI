@@ -55,8 +55,15 @@ void getSinglePerson(crow::response& response, const std::string& uuid) {
         sql::ResultSet *attendanceResults = getAttendanceStatement->executeQuery();
         delete getAttendanceStatement;
 
-        infoResult->next();
-        createPersonJson(infoResult, resultsJson, uuid);
+        if (infoResult->next()) {
+            createPersonJson(infoResult, resultsJson, uuid);
+        } else {
+            delete infoResult;
+            delete groupResults;
+            delete attendanceResults;
+            throw sql::SQLException ("Unable to get info for the person with UUID " + uuid);
+        }
+
         delete infoResult;
 
         // Add the groups list
@@ -120,8 +127,13 @@ void getSingleEvent(crow::response& response, const std::string& uuid) {
         sql::ResultSet* groupResults = getGroupStatement->executeQuery();
         delete getGroupStatement;
 
-        eventResults->next();
-        createEventJson(eventResults, resultsJson, uuid);
+        if (eventResults->next()) {
+            createEventJson(eventResults, resultsJson, uuid);
+        } else {
+            delete eventResults;
+            delete groupResults;
+            throw sql::SQLException ("Unable to get info for the event with UUID " + uuid);
+        }
         delete eventResults;
 
         // Adds the list of groups to the json
@@ -166,8 +178,12 @@ void getSingleRequest(crow::response& response, const std::string& uuid) {
         sql::ResultSet* result = requestStatement->executeQuery();
         delete requestStatement;
 
-        result->next();
-        createRequestJson(result, resultsJson, uuid);
+        if (result->next()) {
+            createRequestJson(result, resultsJson, uuid);
+        } else {
+            delete result;
+            throw sql::SQLException ("Unable to get info for the request with UUID " + uuid);
+        }
         delete result;
     }, response);
 }

@@ -387,6 +387,10 @@ void tryToWriteJson(const std::function<void(const crow::json::rvalue&, std::vec
                     }
                 }
 
+                for (sql::PreparedStatement* command : allCommands) {
+                    delete command;
+                }
+
                 if (!failed) {
                     // Send the response to the user
                     response.code = 200;
